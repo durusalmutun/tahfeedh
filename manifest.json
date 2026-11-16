@@ -2,7 +2,7 @@
   "name": "Durus Al-Mutun",
   "short_name": "DMC Tahfeedh",
   "description": "দৈনিক হিফজ অগ্রগতি ট্র্যাকার",
-  "lang": "bn",
+  "lang": "en",
   "dir": "auto",
   "start_url": "./index.html",
   "scope": "./",
