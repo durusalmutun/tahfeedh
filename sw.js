@@ -1,5 +1,5 @@
 // শুধু অ্যাপের খোল (shell) ক্যাশ হয়। রিপোর্টের তথ্য সবসময় সরাসরি ইন্টারনেট থেকে আসে।
-const CACHE = 'hifz-shell-v2';
+const CACHE = 'hifz-shell-v4';
 const SHELL = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png', './icon-maskable-512.png', './favicon-32.png', './splash-logo.png'];
 
 self.addEventListener('install', e => {
