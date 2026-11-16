@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="bn"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Durus Al-Mutun</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#05505b">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="DMC">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<style>
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:#05505b;font-family:'Noto Sans Bengali',system-ui,sans-serif;color:#fff}
+#shell{position:fixed;inset:0;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);background:#05505b}
+#frame{display:block;width:100%;height:100%;border:0;background:#f2f6f7}
+.screen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center;background:linear-gradient(160deg,#033a43,#0a6b78)}
+.screen img{width:auto;height:110px}
+.screen h1{font-size:22px;margin:0}
+.screen p{margin:0;opacity:.9;max-width:320px;line-height:1.6}
+.screen button{font:inherit;font-weight:600;background:#fff;color:#05505b;border:0;border-radius:10px;padding:11px 24px;cursor:pointer}
+.dots{display:flex;gap:6px}
+.dots i{width:9px;height:9px;border-radius:50%;background:#e0a100;opacity:.35;animation:b 1s infinite}
+.dots i:nth-child(2){animation-delay:.15s}.dots i:nth-child(3){animation-delay:.3s}
+@keyframes b{50%{opacity:1}}
+@media (prefers-reduced-motion:reduce){.dots i{animation:none;opacity:1}}
+.hide{display:none!important}
+#bar{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));background:#fff;color:#1c2b27;border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px;box-shadow:0 6px 24px rgba(0,0,0,.25);z-index:5}
+#bar span{flex:1;font-size:14px;line-height:1.5}
+#bar button{font:inherit;font-weight:600;border:0;border-radius:10px;padding:9px 14px;cursor:pointer}
+#barGo{background:#05505b;color:#fff}
+#barX{background:#eef2f1;color:#374151}
+</style></head>
+<body>
+
+<div id="shell"><iframe id="frame" title="Durus Al-Mutun" allow="clipboard-write"></iframe></div>
+
+<div id="splash" class="screen">
+  <img src="splash-logo.png" alt="">
+  <h1>Durus Al-Mutun</h1>
+  <div class="dots"><i></i><i></i><i></i></div>
+</div>
+
+<div id="offline" class="screen hide">
+  <img src="splash-logo.png" alt="">
+  <h1>ইন্টারনেট নেই</h1>
+  <p>রিপোর্ট দেখতে ও জমা দিতে ইন্টারনেট লাগে। সংযোগ চালু করে আবার চেষ্টা করুন।</p>
+  <button onclick="load()">আবার চেষ্টা করুন</button>
+</div>
+
+<div id="setup" class="screen hide">
+  <h1>সেটআপ বাকি</h1>
+  <p>এই ফাইলের <b>APP_URL</b> লাইনে আপনার Apps Script ওয়েব অ্যাপের লিংক বসান।</p>
+</div>
+
+<div id="bar" class="hide">
+  <span id="barText">অ্যাপটি ফোনে ইনস্টল করুন, এক ট্যাপেই খুলবে।</span>
+  <button id="barGo">ইনস্টল</button>
+  <button id="barX" aria-label="বন্ধ করুন">✕</button>
+</div>
+
+<script>
+/* ===== শুধু এই লাইনটা বদলান: Apps Script-এর Web app লিংক (শেষে /exec) ===== */
+const APP_URL = 'YOUR_APPS_SCRIPT_URL';
+/* ======================================================================= */
+
+const $ = id => document.getElementById(id);
+const frame = $('frame');
+
+function load() {
+  if (APP_URL.indexOf('https://') !== 0) {
+    $('splash').classList.add('hide'); $('setup').classList.remove('hide'); return;
+  }
+  if (!navigator.onLine) {
+    $('splash').classList.add('hide'); $('offline').classList.remove('hide'); return;
+  }
+  $('offline').classList.add('hide');
+  $('splash').classList.remove('hide');
+  frame.src = APP_URL;
+}
+frame.addEventListener('load', () => {
+  if (frame.src && frame.src.indexOf('http') === 0) $('splash').classList.add('hide');
+});
+window.addEventListener('online', load);
+window.addEventListener('offline', () => {
+  $('offline').classList.remove('hide');
+});
+
+/* ---------- সার্ভিস ওয়ার্কার ---------- */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
+}
+
+/* ---------- ইনস্টল বার ---------- */
+let deferred = null;
+const standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+let dismissed = false;
+try { dismissed = sessionStorage.getItem('barX') === '1'; } catch (e) {}
+
+function showBar() { if (!standalone && !dismissed) $('bar').classList.remove('hide'); }
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferred = e; showBar(); });
+$('barGo').onclick = async () => {
+  if (deferred) { deferred.prompt(); await deferred.userChoice; deferred = null; $('bar').classList.add('hide'); }
+};
+$('barX').onclick = () => {
+  $('bar').classList.add('hide');
+  try { sessionStorage.setItem('barX', '1'); } catch (e) {}
+};
+if (isIOS && !standalone) {
+  $('barText').textContent = 'ফোনে রাখতে Safari-তে শেয়ার (⬆️) চেপে "Add to Home Screen" বাছাই করুন।';
+  $('barGo').classList.add('hide');
+  setTimeout(showBar, 2500);
+}
+
+load();
+</script>
+</body></html>
